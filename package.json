@@ -1,0 +1,26 @@
+{
+  "name": "vaultwarden-clone",
+  "version": "1.0.0",
+  "description": "Um clone moderno, seguro e com zero dependências externas do gerenciador de senhas Vaultwarden / Bitwarden com criptografia ponta-a-ponta zero-knowledge.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "vaultwarden",
+    "bitwarden",
+    "password-manager",
+    "security",
+    "zero-knowledge",
+    "encryption",
+    "web-vault"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vaultwarden Web Vault - Gerenciador de Senhas Seguro</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23175ddc'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z'/></svg>">
+</head>
+<body>
+
+  <!-- ========================================== -->
+  <!-- TELA DE AUTENTICAÇÃO (LOGIN / REGISTRO)     -->
+  <!-- ========================================== -->
+  <div id="auth-screen" class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+        </div>
+        <h1 class="auth-title">Vaultwarden</h1>
+        <p class="auth-subtitle">Cofre de senhas pessoal e seguro</p>
+      </div>
+
+      <!-- Abas de Alternância -->
+      <div class="auth-tabs">
+        <button id="tab-btn-login" class="auth-tab-btn active" type="button">Entrar</button>
+        <button id="tab-btn-register" class="auth-tab-btn" type="button">Criar Conta</button>
+      </div>
+
+      <!-- Formulário de Login -->
+      <div id="login-form-wrapper">
+        <form id="login-form">
+          <div class="form-group">
+            <label class="form-label" for="login-email">Endereço de E-mail</label>
+            <input class="form-input" id="login-email" type="email" placeholder="seu@email.com" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="login-password">Senha Mestra</label>
+            <div class="input-container">
+              <input class="form-input" id="login-password" type="password" placeholder="••••••••••••" required autocomplete="current-password">
+              <button type="button" class="input-btn-toggle" onclick="const p = document.getElementById('login-password'); p.type = p.type === 'password' ? 'text' : 'password';">👁️</button>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">
+            <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+            Desbloquear Cofre
+          </button>
+        </form>
+      </div>
+
+      <!-- Formulário de Registro -->
+      <div id="register-form-wrapper" class="hidden">
+        <form id="register-form">
+          <div class="form-group">
+            <label class="form-label" for="reg-email">Endereço de E-mail</label>
+            <input class="form-input" id="reg-email" type="email" placeholder="seu@email.com" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-password">Senha Mestra</label>
+            <div class="input-container">
+              <input class="form-input" id="reg-password" type="password" placeholder="Mínimo 8 caracteres" required autocomplete="new-password">
+              <button type="button" class="input-btn-toggle" onclick="const p = document.getElementById('reg-password'); p.type = p.type === 'password' ? 'text' : 'password';">👁️</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-password-confirm">Confirmar Senha Mestra</label>
+            <input class="form-input" id="reg-password-confirm" type="password" placeholder="Repita a senha mestra" required autocomplete="new-password">
+          </div>
+          <button type="submit" class="btn-primary">
+            <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Criar Meu Cofre
+          </button>
+        </form>
+      </div>
+
+      <div class="auth-security-notice">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        <span><strong>Segurança Zero-Knowledge:</strong> A senha mestra nunca é enviada ao servidor. Seus dados são criptografados localmente com chaves AES-256 e PBKDF2.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- APLICAÇÃO PRINCIPAL DO COFRE (WEB VAULT)   -->
+  <!-- ========================================== -->
+  <div id="vault-app-screen" class="vault-app hidden">
+    <!-- BARRA LATERAL -->
+    <aside class="vault-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+        </div>
+        <div class="sidebar-brand-title">Vaultwarden</div>
+      </div>
+
+      <div class="sidebar-scroll">
+        <div class="sidebar-section-title">Meu Cofre</div>
+        <div class="sidebar-nav-item active" data-filter="all">
+          <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+          <span>Todos os Itens</span>
+          <span class="sidebar-badge" id="badge-all">0</span>
+        </div>
+        <div class="sidebar-nav-item" data-filter="favorites">
+          <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+          <span>Favoritos</span>
+          <span class="sidebar-badge" id="badge-favorites">0</span>
+        </div>
+        <div class="sidebar-nav-item" data-filter="trash">
+          <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          <span>Lixeira</span>
+          <span class="sidebar-badge" id="badge-trash">0</span>
+        </div>
+
+        <div class="sidebar-section-title">Tipos</div>
+        <div class="sidebar-nav-item" data-filter="type_1">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+          <span>Logins</span>
+          <span class="sidebar-badge" id="badge-type-1">0</span>
+        </div>
+        <div class="sidebar-nav-item" data-filter="type_3">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+          <span>Cartões</span>
+          <span class="sidebar-badge" id="badge-type-3">0</span>
+        </div>
+        <div class="sidebar-nav-item" data-filter="type_2">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+          <span>Notas Seguras</span>
+          <span class="sidebar-badge" id="badge-type-2">0</span>
+        </div>
+        <div class="sidebar-nav-item" data-filter="type_4">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+          <span>Identidades</span>
+          <span class="sidebar-badge" id="badge-type-4">0</span>
+        </div>
+
+        <div class="sidebar-section-title">
+          <span>Pastas</span>
+          <button class="btn-sidebar-add" title="Nova Pasta" onclick="App.promptCreateFolder()">+</button>
+        </div>
+        <div id="sidebar-folder-list"></div>
+
+        <div class="sidebar-section-title">Ferramentas</div>
+        <div class="sidebar-nav-item" onclick="App.openGeneratorModal()">
+          <svg viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+          <span>Gerador de Senhas</span>
+        </div>
+        <div class="sidebar-nav-item" onclick="App.openSecurityAuditModal()">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          <span>Auditoria de Senhas</span>
+        </div>
+        <div class="sidebar-nav-item" onclick="App.openImportExportModal()">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          <span>Importar / Exportar</span>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="user-profile-badge">
+          <div class="user-avatar" id="user-avatar-initial">U</div>
+          <div class="user-email-text" id="user-email-display">usuario@email.com</div>
+        </div>
+        <button class="btn-sidebar-add" title="Bloquear Cofre" onclick="App.lockVault()">
+          <svg style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <main class="vault-main">
+      <!-- TOPBAR -->
+      <header class="vault-topbar">
+        <div class="topbar-search">
+          <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="text" id="search-input" placeholder="Pesquisar no cofre...">
+        </div>
+
+        <div class="topbar-actions">
+          <button class="btn-new-item" onclick="App.openItemModal()">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            <span>Novo Item</span>
+          </button>
+          <button class="btn-topbar-action" title="Alternar Modo Escuro/Claro" onclick="App.toggleTheme()">
+            <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+          </button>
+          <button class="btn-topbar-action" title="Bloquear Cofre" onclick="App.lockVault()">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </button>
+          <button class="btn-topbar-action" title="Sair" onclick="App.logout()">
+            <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTEÚDO PRINCIPAL -->
+      <section class="vault-content">
+        <div class="content-header">
+          <div class="content-title-wrapper">
+            <h2 class="content-title" id="content-filter-title">Todos os Itens</h2>
+            <span class="content-count-badge" id="content-filter-count">0</span>
+          </div>
+          <button id="btn-purge-trash" class="btn-danger" style="display: none;" onclick="App.purgeTrash()">
+            Esvaziar Lixeira
+          </button>
+        </div>
+
+        <div id="items-list-container"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE ITEM          -->
+  <!-- ========================================== -->
+  <div id="item-modal" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title" id="item-modal-title">Novo Item</div>
+        <button class="btn-modal-close" onclick="App.closeItemModal()">✕</button>
+      </div>
+      <form id="item-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="item-type-select">Tipo de Item</label>
+            <select class="form-select" id="item-type-select">
+              <option value="1">Login (Conta / Senha)</option>
+              <option value="3">Cartão de Pagamento</option>
+              <option value="2">Nota Segura</option>
+              <option value="4">Identidade</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="item-name">Nome do Item</label>
+            <input class="form-input" id="item-name" type="text" placeholder="Ex: Google, GitHub, Netflix..." required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="item-folder-select">Pasta</label>
+            <select class="form-select" id="item-folder-select">
+              <option value="">Nenhuma pasta</option>
+            </select>
+          </div>
+
+          <!-- Campos para Login -->
+          <div id="section-login">
+            <div class="form-group">
+              <label class="form-label" for="item-username">Nome de Usuário / E-mail</label>
+              <input class="form-input" id="item-username" type="text" placeholder="usuario@exemplo.com">
+            </div>
+
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" for="item-password" style="margin-bottom: 0;">Senha</label>
+                <button type="button" class="btn-topbar-action" style="padding: 2px 8px; font-size: 11px;" onclick="App.openGeneratorModal()">Gerar Senha</button>
+              </div>
+              <div class="input-container">
+                <input class="form-input" id="item-password" type="password" placeholder="••••••••••••">
+                <button type="button" class="input-btn-toggle" onclick="const p = document.getElementById('item-password'); p.type = p.type === 'password' ? 'text' : 'password';">👁️</button>
+              </div>
+              <div class="password-meter-bar">
+                <div class="password-meter-fill" id="password-meter-fill"></div>
+              </div>
+              <div class="password-meter-text" id="password-meter-text"></div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="item-uri">URI / Endereço Web</label>
+              <input class="form-input" id="item-uri" type="url" placeholder="https://exemplo.com/login">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="item-totp">Chave do Autenticador (TOTP / 2FA)</label>
+              <input class="form-input" id="item-totp" type="text" placeholder="Chave secreta Base32 (ex: JBSWY3DPEHPK3PXP)">
+              <div id="modal-totp-container" class="totp-box" style="display: none;">
+                <div>
+                  <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">CÓDIGO DE VERIFICAÇÃO ATUAL</div>
+                  <div class="totp-code-display" id="modal-totp-code">--- ---</div>
+                </div>
+                <div class="totp-timer-circle" id="modal-totp-timer">30s</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Campos para Cartão -->
+          <div id="section-card" style="display: none;">
+            <div class="form-group">
+              <label class="form-label" for="item-card-holder">Nome no Cartão</label>
+              <input class="form-input" id="item-card-holder" type="text" placeholder="Como impresso no cartão">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="item-card-number">Número do Cartão</label>
+              <input class="form-input" id="item-card-number" type="text" placeholder="0000 0000 0000 0000">
+            </div>
+            <div style="display: flex; gap: 12px;">
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label" for="item-card-exp">Validade</label>
+                <input class="form-input" id="item-card-exp" type="text" placeholder="MM/AA">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label" for="item-card-cvv">Código de Segurança (CVV)</label>
+                <input class="form-input" id="item-card-cvv" type="password" placeholder="123">
+              </div>
+            </div>
+          </div>
+
+          <!-- Campos para Identidade -->
+          <div id="section-identity" style="display: none;">
+            <div class="form-group">
+              <label class="form-label" for="item-id-name">Nome Completo</label>
+              <input class="form-input" id="item-id-name" type="text" placeholder="Nome Completo">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="item-id-doc">CPF / Documento</label>
+              <input class="form-input" id="item-id-doc" type="text" placeholder="000.000.000-00">
+            </div>
+            <div style="display: flex; gap: 12px;">
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label" for="item-id-phone">Telefone</label>
+                <input class="form-input" id="item-id-phone" type="tel" placeholder="(11) 99999-9999">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label" for="item-id-email">E-mail</label>
+                <input class="form-input" id="item-id-email" type="email" placeholder="email@exemplo.com">
+              </div>
+            </div>
+          </div>
+
+          <!-- Notas e Favorito -->
+          <div id="section-notes" class="form-group">
+            <label class="form-label" for="item-notes">Notas Seguras</label>
+            <textarea class="form-textarea" id="item-notes" rows="3" placeholder="Informações adicionais criptografadas"></textarea>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="item-favorite" style="width: 16px; height: 16px;">
+            <label for="item-favorite" style="font-size: 13.5px; font-weight: 500; cursor: pointer;">Marcar como Favorito ⭐</label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="App.closeItemModal()">Cancelar</button>
+          <button type="submit" class="btn-modal-save">Salvar no Cofre</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL DO GERADOR DE SENHAS                 -->
+  <!-- ========================================== -->
+  <div id="generator-modal" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg style="width: 20px; height: 20px; fill: var(--color-primary);" viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+          Gerador de Senhas
+        </div>
+        <button class="btn-modal-close" onclick="document.getElementById('generator-modal').classList.add('hidden')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <div class="input-container">
+            <input class="form-input" id="gen-output" type="text" readonly style="font-family: monospace; font-size: 16px; font-weight: 700; color: var(--color-primary); letter-spacing: 1px;">
+            <button type="button" class="input-btn-toggle" title="Gerar Nova" onclick="App.refreshGenerator()" style="right: 40px;">🔄</button>
+            <button type="button" class="input-btn-toggle" title="Copiar Senha" onclick="App.copyGeneratedPassword()">📋</button>
+          </div>
+          <div class="password-meter-bar" style="margin-top: 8px;">
+            <div class="password-meter-fill" id="gen-meter-fill"></div>
+          </div>
+          <div class="password-meter-text" id="gen-meter-text"></div>
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <label class="form-label">Comprimento: <strong id="gen-length-val">16</strong> caracteres</label>
+          </div>
+          <input type="range" id="gen-length" min="8" max="64" value="16" style="width: 100%;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
+            <input type="checkbox" id="gen-upper" checked> Maiúsculas (A-Z)
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
+            <input type="checkbox" id="gen-lower" checked> Minúsculas (a-z)
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
+            <input type="checkbox" id="gen-num" checked> Números (0-9)
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
+            <input type="checkbox" id="gen-special" checked> Símbolos (!@#$%)
+          </label>
+        </div>
+
+        <div style="margin-top: 12px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
+            <input type="checkbox" id="gen-ambiguous" checked> Evitar caracteres ambíguos (I, l, 1, 0, O)
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="App.copyGeneratedPassword()">Copiar Senha</button>
+        <button type="button" class="btn-modal-save" onclick="App.useGeneratedPasswordInModal()">Usar esta Senha</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL DE AUDITORIA DE SEGURANÇA           -->
+  <!-- ========================================== -->
+  <div id="audit-modal" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg style="width: 20px; height: 20px; fill: var(--color-success);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          Relatório de Saúde do Cofre
+        </div>
+        <button class="btn-modal-close" onclick="document.getElementById('audit-modal').classList.add('hidden')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 16px;">
+          Análise de segurança em tempo real das credenciais salvas no seu cofre.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="background: var(--bg-main); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 12px; color: var(--text-muted);">Total de Contas</div>
+            <div style="font-size: 24px; font-weight: 700; color: var(--text-main);" id="audit-total-accounts">0</div>
+          </div>
+          <div style="background: var(--bg-main); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 12px; color: #ef4444;">Senhas Fracas</div>
+            <div style="font-size: 24px; font-weight: 700; color: #ef4444;" id="audit-weak-count">0</div>
+          </div>
+          <div style="background: var(--bg-main); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 12px; color: #f59e0b;">Senhas Reutilizadas</div>
+            <div style="font-size: 24px; font-weight: 700; color: #f59e0b;" id="audit-reused-count">0</div>
+          </div>
+          <div style="background: var(--bg-main); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 12px; color: var(--color-info);">Sem Verificação 2FA</div>
+            <div style="font-size: 24px; font-weight: 700; color: var(--color-info);" id="audit-2fa-count">0</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; font-size: 13px; color: var(--text-muted); background: var(--bg-main); padding: 12px; border-radius: var(--radius-sm);">
+          💡 <strong>Recomendação:</strong> Atualize as senhas marcadas como fracas ou reutilizadas para senhas aleatórias de ao menos 16 caracteres geradas pelo Vaultwarden.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('audit-modal').classList.add('hidden')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL DE IMPORTAR / EXPORTAR COFRE         -->
+  <!-- ========================================== -->
+  <div id="import-export-modal" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title">Importar / Exportar Cofre</div>
+        <button class="btn-modal-close" onclick="document.getElementById('import-export-modal').classList.add('hidden')">✕</button>
+      </div>
+      <div class="modal-body">
+        <h4 style="font-size: 15px; margin-bottom: 8px;">Exportar Dados</h4>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+          Baixe um backup do seu cofre em formato JSON compatível com Vaultwarden e Bitwarden.
+        </p>
+        <button type="button" class="btn-secondary" style="margin-bottom: 24px;" onclick="App.exportVaultJSON()">
+          ⬇️ Exportar Cofre (JSON)
+        </button>
+
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin-bottom: 20px;">
+
+        <h4 style="font-size: 15px; margin-bottom: 8px;">Importar Dados</h4>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+          Importe itens de um backup JSON gerado pelo Bitwarden ou Vaultwarden.
+        </p>
+        <input type="file" id="import-file-input" accept=".json" onchange="App.handleFileImport(event)" style="font-size: 13px;">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('import-export-modal').classList.add('hidden')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- TELA DE BLOQUEIO DO COFRE (LOCK SCREEN)     -->
+  <!-- ========================================== -->
+  <div id="lock-screen" class="lock-screen-wrapper hidden">
+    <div class="lock-card">
+      <div class="lock-avatar-wrapper">
+        <div class="lock-shield">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+        </div>
+      </div>
+      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">Cofre Bloqueado</h2>
+      <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 20px;">Insira sua senha mestra para desbloquear o acesso às suas credenciais.</p>
+      
+      <form id="lock-form">
+        <div class="form-group">
+          <div class="input-container">
+            <input class="form-input" id="lock-master-password" type="password" placeholder="Senha mestra" required>
+            <button type="button" class="input-btn-toggle" onclick="const p = document.getElementById('lock-master-password'); p.type = p.type === 'password' ? 'text' : 'password';">👁️</button>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" style="margin-bottom: 12px;">Desbloquear</button>
+        <button type="button" class="btn-secondary" style="width: 100%;" onclick="App.logout()">Desconectar Conta</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Contêiner de Notificações Toast -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- SCRIPTS DA APLICAÇÃO -->
+  <script src="js/crypto.js"></script>
+  <script src="js/totp.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
